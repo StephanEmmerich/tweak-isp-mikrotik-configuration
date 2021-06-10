@@ -2,15 +2,15 @@
 
 ## Introduction
 
-I have written this manual as an explanation of how [Tweak](https://www.tweak.nl/) Fiber To The Home (FTTH) has to be configured, using your [own hardware](https://www.tweak.nl/support/apparatuur-configureren.html). There is quite some information available on the internet, but none of them were fully clear to me. Hence, with this Github page I try to provide you with more information, such that you understand how it works. Please note, I am a software engineer (Scala or Java) with Devops skills, I am **not** a platform engineer nor a network engineer. My intended audience are IT people, who have a basic understand of networking and would like to use their own hardware.
+I have written this manual as an explanation of how [Tweak](https://www.tweak.nl/) Fiber To The Home (FTTH) has to be configured, using your [own hardware](https://www.tweak.nl/support/apparatuur-configureren.html). There is quite some information available on the internet, but none of them were fully clear to me. Hence, with this Github page I try to provide you with more information, such that you understand how it works. Please note, I am a software engineer (Scala or Java) with Devops skills, I am **not** a platform engineer nor a network engineer. My intended audience are IT people, who have a basic understanding of networking and would like to use their own hardware.
 
 ### Reasons for using own hardware
 
-I had a [Zyxel VMG8324-B10A](ftp://ftp2.zyxel.com/VMG8324-B10A/user_guide/VMG8324-B10A_V1.00.pdf) modem from Tweak. This device allows a lot of configuration, it still frustrated me a lot:
+I had a [Zyxel VMG8324-B10A](https://www.tweak.nl/glasvezel/apparatuur.html) modem from Tweak. This device allows a lot of configuration, but still frustrates me a lot:
 
 - It is very slow (especially during boot)
-- Sometimes internet/tv hangs, so I had to reboot it (or twice)
-- TV signal is/was distorted, especially recordings and 'Uitzending Gemist', which is most likely caused by the servers of Tweak. The service desk often first checks my own hardware, which I can understand, but after having this reported repeatedly, it started frustrating me.
+- Sometimes internet/tv hangs, so I had to reboot it (or twice or more)
+- TV signal is/was distorted sometimes, especially during recordings and 'Uitzending Gemist', which is most likely caused by the servers of Tweak. The service desk often first checks my own hardware, which I can understand, but after having this reported repeatedly and repeating it over and over, it started frustrating me.
 
 ## Network topology
 
@@ -33,7 +33,7 @@ I do read on the internet that the hEX S (or hEX router family) may not be fast 
 
 ## Configuration
 
-The basic Tweak settings can be found [here](https://www.tweak.nl/support/apparatuur-configureren.html). These are the basic settings. Also, it is recommended to make a screenshot of your Zyxel status page, an example can be found [here](./images/zyxel-status-page.jpg). I use some of the MAC addresses to mimic the Zyxel router. I assume you have a Zyxel router and you connect to the router using [Winbox](https://mikrotik.com/download).
+The basic Tweak settings can be found [here](https://www.tweak.nl/support/apparatuur-configureren.html). It is also recommended to make a screenshot of your Zyxel status page, an example can be found [here](./images/zyxel-status-page.jpg). I use some of the MAC addresses to mimic the Zyxel router. I assume you have a Zyxel router and you connect to the router using [Winbox](https://mikrotik.com/download).
 
 ### Package multicast
 
@@ -55,7 +55,7 @@ add admin-mac={LAN_INFORMATION_MAC-ADDRESS} arp=proxy-arp auto-mac=no comment="L
 add admin-mac={WAN_INFORMATION_MAC-ADDRESS} auto-mac=no name=bridge_vlan34_wan
 ```
 
-We use two bridges, because we need one for internet (and TV) and for our internal network. In order to keep everything the same as your Zyxel router, fill in the MAC addresses as described above.
+We use two bridges, because we need one for internet (and TV) and for our internal network. In order to keep everything the same as your Zyxel router, fill in the MAC addresses as described above from the Zyxel status page.
 
 ```
 /interface ethernet
@@ -128,7 +128,7 @@ add comment="DHCP WAN Tweak" disabled=no interface=vlan1.34
 add add-default-route=special-classless comment="DHCP IPTV Tweak" default-route-distance=255 dhcp-options=hostname,clientid,classless-static-route-option disabled=no interface=vlan1.4 use-peer-ntp=no
 ```
 
-Here we do two things, for internet do a DHCP client request on VLAN `34` for internet. More interesting is the second part (third line), then we do a DHCP request for IPTV on VLAN 4 (through `interface-vlan1.4`). Important to note, is that we add the `121` option code (`classless-static-route-option`) and set a default route distance of 255. The reason for doing this, is because we have to route TV data to this gateway. As we will later see, we need this information to verify our static TV routes. We put there `255`, because if we put the distance to `1`, then all the traffic (including internet) would go over here and then internet doesn't work. We dive into this later again, when we set a static TV route.
+Here we do two things, for internet do a DHCP client request on VLAN `34` for internet. More interesting is the second part (third line), then we do a DHCP request for IPTV on VLAN `4` (through `interface-vlan1.4`). Important to note, is that we add the `121` option code (`classless-static-route-option`) and set a default route distance of 255. The reason for doing this, is because we have to route TV data to this gateway. As we will later see, we need this information to verify our static TV routes. We put there `255`, because if we put the distance to `1`, then all the traffic (including internet) would go over here and then internet doesn't work. We dive into this later again, when we set a static TV route.
 
 ```
 /ip dhcp-server lease
@@ -138,7 +138,7 @@ add address=192.168.88.2 comment="Deco X60 2" mac-address={MAC_OF_DECO_X60_SECON
 add address=192.168.88.8 comment="Amino TV Box" mac-address={MAC_ADDRESS_OF_AMINO_BOX} server=dhcp_local_lan
 ```
 
-I prefer to keep some devices static, so I can access them more easily internally. Also, you should set the Amino box to a static IP, because we need to forward TV traffic to it in order to get pauzing and recordings working. We will dive into that later.
+I prefer to keep devices static, so I can access them more easily. Also, you should set the Amino box to a static IP, because we need to forward TV traffic to it in order to get pauzing and recordings working. We will dive into that later.
 
 ```
 /ip dhcp-server network add address=192.168.88.0/24 dns-server=192.168.88.254 domain=thuis.local gateway=192.168.88.254 netmask=24
@@ -183,7 +183,7 @@ add action=accept chain=input comment="Forward established en related WAN" conne
 add action=fasttrack-connection chain=forward comment="Fast forward connections vlan34" connection-state=established,related in-interface=vlan1.34
 ```
 
-Accept and fast track connection for speedup, the last two lines can be redundant, not sure. Difference is the interface it's for.
+Accept and fast track connection to speedup, the last two lines can be redundant, not sure. Difference is the interface it's for.
 
 ```
 add action=accept chain=forward comment="Accept DST traffic" connection-nat-state=dstnat in-interface=vlan1.34
