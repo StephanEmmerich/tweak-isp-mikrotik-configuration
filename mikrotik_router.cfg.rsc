@@ -101,7 +101,7 @@ add action=accept chain=forward comment="IPTV multicast" dst-address=224.0.0.0/8
 # Masquerading must be added, else nothing will work. The rules could perhaps be one, be this is more explicit (and safe)
 # The 
 /ip firewall nat
-add action=masquerade chain=srcnat comment="Masquerade internet traffic" out-interface=vlan1.34
+add action=masquerade chain=srcnat comment="Masquerade internet traffic"
 add action=masquerade chain=srcnat comment="Masquerade TV connection" out-interface=vlan1.4
 add action=dst-nat chain=dstnat comment="All dst-nat on VLAN4 to TV box to ensure clean streaming since there is no RTSP protocol on Mikrotik" dst-address=!224.0.0.0/8 in-interface=vlan1.4 to-addresses=192.168.88.8
 

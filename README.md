@@ -234,11 +234,13 @@ This is for IPTV and a bit of a hack. I got it from some other resources (see be
 The port forwarding and masquerading part, see [here](https://help.mikrotik.com/docs/display/ROS/NAT) for the basics. Let's go over them one by one.
 
 ```
-add action=masquerade chain=srcnat comment="Masquerade internet traffic" out-interface=vlan1.34
+add action=masquerade chain=srcnat comment="Masquerade internet traffic"
 add action=masquerade chain=srcnat comment="Masquerade TV connection" out-interface=vlan1.4
 ```
 
-All packages must be [masqueraded](https://en.wikipedia.org/wiki/Network_address_translation), else it won't work at all. This line may be squeezed into one, but kept separated for clarity.
+All packages must be [masqueraded](https://en.wikipedia.org/wiki/Network_address_translation), else it won't work at all. This line may be squeezed into one, but kept separated for clarity. Please note, if you want to internally connect with your public IP (also called NAT loopback or [hairpin NAT](https://help.mikrotik.com/docs/display/ROS/NAT#NAT-HairpinNAT), 
+you should **not** configure an `out-interface` (e.g. `out-interface=vlan1.34`). The same counts for the NAT port forwarding. You can configure an `out-interface`, but doing so blocks the NAT loopback, because your internal traffic is not on `vlan1.34`, only the outside world is.
+For TV I kept it, since it doesn't do any harm and it is (slightly) more safe.
 
 ```
 add action=dst-nat chain=dstnat comment="All dst-nat on VLAN4 to TV box to ensure clean streaming since there is no RTSP protocol on Mikrotik" dst-address=!224.0.0.0/8 in-interface=vlan1.4 to-addresses=192.168.88.8
