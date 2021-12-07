@@ -47,7 +47,7 @@ To understand how to install packages on a Mikrotik RouterBoard: [https://system
 
 ### Internet and IPTV
 
-The full configuration file can be found [here](./mikrotik_router.cfg.rsc), you can download this file, but you need to modify some parts. Let met walk you through the file.
+The full configuration file can be found [here](./mikrotik_router.cfg.rsc), you can download this file, but you need to modify some parts. Let's walk you through the file.
 
 ```
 /interface bridge
@@ -55,7 +55,7 @@ add admin-mac={LAN_INFORMATION_MAC-ADDRESS} arp=proxy-arp auto-mac=no comment="L
 add admin-mac={WAN_INFORMATION_MAC-ADDRESS} auto-mac=no name=bridge_vlan34_wan
 ```
 
-We use two bridges, because we need one for internet (and TV) and for our internal network. In order to keep everything the same as your Zyxel router, fill in the MAC addresses as described above from the Zyxel status page.
+We use two bridges, because we need one for internet (and TV) and one for our internal network. In order to keep everything the same as your Zyxel router, fill in the MAC addresses as described above from the Zyxel status page.
 
 ```
 /interface ethernet
@@ -71,7 +71,7 @@ add interface=ether1 name=vlan1.4 vlan-id=4
 add interface=bridge_vlan34_wan loop-protect=off name=vlan1.34 vlan-id=34
 ```
 
-So TV goes over vlan 4 and internet over 34. We use the bridge for internet, since that uses also the correct MAC address. You can't put vlan 4 also in that bridge, because then the same MAC address is used when doing the DHCP request and that doesn't work. Please try to remember the `names`, we will use them later on.
+So TV goes over vlan 4 and internet over 34. We use the bridge for internet, since that uses also the correct MAC address. You can't put vlan 4 also in that bridge, because then the same MAC address is used when doing the DHCP request and that doesn't work. Please try to remember the `name` values, we will use them later on.
 
 ```
 /interface wireless security-profiles set [ find default=yes ] supplicant-identity=MikroTik
@@ -320,7 +320,7 @@ Configure a default user `{MY USERNAME}` and remove the admin one. Set a secure 
 
 I use a [Linksys PAP2T](https://nl.aliexpress.com/w/wholesale-linksys-pap2t.html) to get telephony working. Here I share my configuration for this.
 
-**Before you continue, you must contact the Tweak service desk to get your SIP password from Tweak. They email you all the information and you need else it won't work.**
+**Before you continue, you must contact the Tweak service desk to get your SIP password from Tweak. They email you all the information and you this else it won't work.**
 
 1. Login to the device. As you can see above, I have set a static IP to the device. Go to the URL with your browser.
 2. Click on `Admin Login` and login as admin, switch to `Advanced view`
