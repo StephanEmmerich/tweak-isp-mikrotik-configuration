@@ -85,12 +85,12 @@ add action=fasttrack-connection chain=forward comment="Fast forward connections"
 add action=accept chain=input comment="Forward established en related WAN" connection-state=established,related in-interface=vlan1.34
 add action=accept chain=forward comment="Accept DST traffic" connection-nat-state=dstnat in-interface=vlan1.34
 add action=drop chain=forward comment="Drop invalid WAN connections" connection-state=invalid in-interface=vlan1.34
-add action=fasttrack-connection chain=forward comment="Fast forward connections vlan34" connection-state=established,related in-interface=vlan1.34
 add action=drop chain=input comment="Protect from external DNS calls" dst-port=53 in-interface=vlan1.34 protocol=udp
 add action=reject chain=input comment="Protect from external DNS calls" dst-port=53 in-interface=vlan1.34 protocol=tcp reject-with=icmp-host-unreachable
-add action=reject chain=input comment="Reject icmp troep" in-interface=vlan1.34 protocol=tcp reject-with=icmp-port-unreachable
+add action=reject chain=input comment="Reject icmp traffic" in-interface=vlan1.34 protocol=tcp reject-with=icmp-port-unreachable
 add action=reject chain=input in-interface=vlan1.34 reject-with=icmp-network-unreachable
 add action=reject chain=input in-interface=vlan1.34 reject-with=icmp-network-unreachable
+add action=drop chain=input dst-address={YOUR_PUBLIC_IP} protocol=icmp
 add action=drop chain=forward comment="Drop unrouted addresses" in-interface=vlan1.34 src-address-list=Unrouted
 add action=drop chain=forward comment="Drop all from WAN not DSTNATed" connection-nat-state=!dstnat connection-state=new in-interface=vlan1.34
 add action=accept chain=input comment="IPTV multicast" dst-address=224.0.0.0/8 in-interface=vlan1.4
@@ -101,9 +101,10 @@ add action=accept chain=forward comment="IPTV multicast" dst-address=224.0.0.0/8
 # Masquerading must be added, else nothing will work. The rules could perhaps be one, be this is more explicit (and safe)
 # The 
 /ip firewall nat
-add action=masquerade chain=srcnat comment="Masquerade internet traffic"
-add action=masquerade chain=srcnat comment="Masquerade TV connection" out-interface=vlan1.4
+add action=masquerade chain=srcnat comment="Masquerade internet traffic" src-address=192.168.88.0/24
 add action=dst-nat chain=dstnat comment="All dst-nat on VLAN4 to TV box to ensure clean streaming since there is no RTSP protocol on Mikrotik" dst-address=!224.0.0.0/8 in-interface=vlan1.4 to-addresses=192.168.88.8
+add action=dst-nat chain=dstnat comment="Example FTP forward" dst-port=21 protocol=tcp to-addresses=192.168.88.1 to-ports=21
+add action=dst-nat chain=dstnat comment="Example FTP PASV forward" dst-port=3500 dst-address={YOUR_PUBLIC_IP} protocol=tcp to-addresses=192.168.88.1 to-ports=3500
 
 # For security shutdown everything
 /ip firewall service-port

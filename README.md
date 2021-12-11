@@ -178,9 +178,8 @@ My firewall rules (to understand the basics, read [this](https://help.mikrotik.c
 ```
 add action=accept chain=forward comment="Accept only established and related" connection-state=established,related
 add action=fasttrack-connection chain=forward comment="Fast forward connections" connection-state=established,related
-
 add action=accept chain=input comment="Forward established en related WAN" connection-state=established,related in-interface=vlan1.34
-add action=fasttrack-connection chain=forward comment="Fast forward connections vlan34" connection-state=established,related in-interface=vlan1.34
+add action=accept chain=forward comment="Accept DST traffic" connection-nat-state=dstnat in-interface=vlan1.34
 ```
 
 Accept and fast track connection to speedup, the last two lines can be redundant, not sure. Difference is the interface it's for.
@@ -195,7 +194,7 @@ Allow DST traffic to get NAT properly working.
 add action=drop chain=forward comment="Drop invalid WAN connections" connection-state=invalid in-interface=vlan1.34
 ```
 
-Drop crap connections
+Drop connections that shouldn't be here
 
 ```
 add action=drop chain=input comment="Protect from external DNS calls" dst-port=53 in-interface=vlan1.34 protocol=udp
@@ -205,12 +204,13 @@ add action=reject chain=input comment="Protect from external DNS calls" dst-port
 Remember that DNS allows external calls. Here we block it from the internet, so only from the internal network DNS requests can be made. This is good, this is important!
 
 ```
-add action=reject chain=input comment="Reject icmp troep" in-interface=vlan1.34 protocol=tcp reject-with=icmp-port-unreachable
+add action=reject chain=input comment="Reject icmp traffic" in-interface=vlan1.34 protocol=tcp reject-with=icmp-port-unreachable
 add action=reject chain=input in-interface=vlan1.34 reject-with=icmp-network-unreachable
 add action=reject chain=input in-interface=vlan1.34 reject-with=icmp-network-unreachable
+add action=drop chain=input dst-address={YOUR_PUBLIC_IP} protocol=icmp
 ```
 
-Reject crap ICMP packages
+Reject ICMP, ping..etc. We don't want that. Also, we use `YOUR_PUBLIC_IP` to ensure that pings to you are blocked. We will dive into these public IPs later.
 
 ```
 add action=drop chain=forward comment="Drop unrouted addresses" in-interface=vlan1.34 src-address-list=Unrouted
@@ -234,19 +234,32 @@ This is for IPTV and a bit of a hack. I got it from some other resources (see be
 The port forwarding and masquerading part, see [here](https://help.mikrotik.com/docs/display/ROS/NAT) for the basics. Let's go over them one by one.
 
 ```
-add action=masquerade chain=srcnat comment="Masquerade internet traffic"
-add action=masquerade chain=srcnat comment="Masquerade TV connection" out-interface=vlan1.4
+add action=masquerade chain=srcnat comment="Masquerade internet traffic" src-address=192.168.88.0/24
 ```
 
-All packages must be [masqueraded](https://en.wikipedia.org/wiki/Network_address_translation), else it won't work at all. This line may be squeezed into one, but kept separated for clarity. Please note, if you want to internally connect with your public IP (also called NAT loopback or [hairpin NAT](https://help.mikrotik.com/docs/display/ROS/NAT#NAT-HairpinNAT), 
-you should **not** configure an `out-interface` (e.g. `out-interface=vlan1.34`). The same counts for the NAT port forwarding. You can configure an `out-interface`, but doing so blocks the NAT loopback, because your internal traffic is not on `vlan1.34`, only the outside world is.
-For TV I kept it, since it doesn't do any harm and it is (slightly) more safe.
+All packages must be [masqueraded](https://en.wikipedia.org/wiki/Network_address_translation), else it won't work at all. 
+We use the `192.168.88.0/24` range, since everything will have such an IP. This will also masquerade stuff internally, in case you want to connect from LAN to your public IP. 
 
 ```
 add action=dst-nat chain=dstnat comment="All dst-nat on VLAN4 to TV box to ensure clean streaming since there is no RTSP protocol on Mikrotik" dst-address=!224.0.0.0/8 in-interface=vlan1.4 to-addresses=192.168.88.8
 ```
 
 This is also some sort of hack which I took from Tweakers forum. Since [RTSP protocol](https://en.wikipedia.org/wiki/Real_Time_Streaming_Protocol) is not really supported, we need to forward all ports regarding IPTV to the Amino TV Box (hence the static IP for it). If you don't do this, most likely pausing and watching back TV doesn't work properly. Also note, connecting a second Animo box is not really possible this way. But that's something I don't use.
+
+```
+add action=dst-nat chain=dstnat comment="Example FTP forward" dst-port=21 protocol=tcp to-addresses=192.168.88.1 to-ports=21
+add action=dst-nat chain=dstnat comment="Example FTP PASV forward" dst-port=3500 dst-address={YOUR_PUBLIC_IP} protocol=tcp to-addresses=192.168.88.1 to-ports=3500
+```
+Example port forward of FTP. Please note the [FTP Passive](https://en.wikipedia.org/wiki/File_Transfer_Protocol) mode. If you want to be able to forward this nicely, you need to configure your public IP in, then this rule works from in- and outside your network.
+
+#### Your (static) public IP
+You sometimes need to set your public IP. This IP may change, the following should be taken into account
+- To deal with this easily, you can use [Mikrotik Cloud DDNS](https://help.mikrotik.com/docs/display/ROS/Cloud). This is also under `IP` -> `Cloud`. If you set the DDNS, you will get a DNS from Mikrotik, which looks like `xxx.sn.mynetname.net`. 
+- You can use this DNS in the firewall (as IP list), then your dynamic IP is automatically updated
+- The disadvantage of this, is that your IP is now on the internet, so you can do two things:
+   - You don't care
+   - Use a VPN connection
+   - Handle changes manually, especially when most of the time it's a static value
 
 ```
 /ip firewall service-port
